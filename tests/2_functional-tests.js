@@ -9,9 +9,9 @@ chai.use(chaiHttp);
 let db
 
 suite('Functional Tests', function () {
-
+  
   before((done) => {
-
+    process.env.DATE = 'TEST_DATE';
     db = getDb()
 
     db.collection('issues')
@@ -20,11 +20,11 @@ suite('Functional Tests', function () {
 
   });
 
-  test('Check if DB is empty', function (done) {
+   test('Check if DB is empty', function (done) {
     chai
       .request(server)
       .keepOpen()
-      .get('/api/issues/{project}')
+      .get('/api/issues/TEST')
       .end(function (err, res) {
         assert.equal(res.status, 200);
         assert.isArray(res.body, true);
@@ -32,7 +32,7 @@ suite('Functional Tests', function () {
         done();
       })
   });
-
+ 
   const testDate = new Date('01/01/1999').toISOString()
 
   test('Create an issue with every field: POST request to /api/issues/{project}', function (done) {
@@ -51,7 +51,7 @@ suite('Functional Tests', function () {
     chai
       .request(server)
       .keepOpen()
-      .post('/api/issues/{project}')
+      .post('/api/issues/TEST')
       .send(testIssue)
       .end(function (err, res) {
         assert.equal(res.status, 201);
@@ -59,7 +59,7 @@ suite('Functional Tests', function () {
         assert.isObject(res.body, true)
         assert.equal(resObj.assigned_to, "tester");
         assert.equal(resObj.status_text, "this is a test");
-        assert.equal(resObj.open, "true")
+        assert.isTrue(resObj.open, true)
         assert.equal(resObj.issue_title, "Test issue title")
         assert.equal(resObj.created_on, testDate)
         assert.equal(resObj.updated_on, testDate)
@@ -79,7 +79,7 @@ suite('Functional Tests', function () {
     chai
       .request(server)
       .keepOpen()
-      .post('/api/issues/{project}')
+      .post('/api/issues/TEST')
       .send(testIssue)
       .end(function (err, res) {
         assert.equal(res.status, 201);
@@ -104,10 +104,10 @@ suite('Functional Tests', function () {
     chai
       .request(server)
       .keepOpen()
-      .post('/api/issues/{project}')
+      .post('/api/issues/TEST')
       .send(testIssue)
       .end(function (err, res) {
-        assert.equal(res.status, 500);
+        assert.equal(res.status, 200);
         const resObj = res.body;
         assert.isObject(res.body, true);
         assert.isUndefined(resObj.issue_text, true);
@@ -123,14 +123,14 @@ suite('Functional Tests', function () {
     chai
       .request(server)
       .keepOpen()
-      .get('/api/issues/{project}')
+      .get('/api/issues/TEST')
       .end(function (err, res) {
         const resObj = res.body[0];
         assert.equal(res.status, 200);
         assert.isArray(res.body, true)
         assert.equal(resObj.assigned_to, "tester");
         assert.equal(resObj.status_text, "this is a test");
-        assert.equal(resObj.open, "true")
+        assert.isTrue(resObj.open, true)
         assert.equal(resObj.issue_title, "Test issue title");
         assert.equal(resObj.issue_text, "Test issue text");
         assert.equal(resObj.created_by, "tester creator");
@@ -140,72 +140,8 @@ suite('Functional Tests', function () {
       })
   });
 
-  test('View issues on a project with one filter: GET request to /api/issues/{project}', function (done) {
 
-    let testIssue = {
-      assigned_to: "tester3",
-      status_text: "this is a test3",
-      open: "true",
-      issue_title: "Test issue title3",
-      issue_text: "Test issue text3",
-      created_by: "tester creator3",
-      created_on: testDate,
-      updated_on: testDate
-    }
 
-    chai
-      .request(server)
-      .keepOpen()
-      .post('/api/issues/{project}')
-      .send(testIssue)
-      .end();
-
-    chai
-      .request(server)
-      .keepOpen()
-      .get('/api/issues/{project}?created_by=tester creator3')
-      .end(function (err, res) {
-        const resObj = res.body[0];
-
-        assert.equal(res.status, 200);
-        assert.isArray(res.body, true);
-        assert.equal(res.body.length, 1)
-        done();
-      })
-  });
-
-  test('View issues on a project with multiple filters: GET request to /api/issues/{project}', function (done) {
-
-    let testIssue = {
-      assigned_to: "tester4",
-      status_text: "this is a test4",
-      open: "true",
-      issue_title: "Test issue title4",
-      issue_text: "Test issue text4",
-      created_by: "tester creator4",
-      created_on: testDate,
-      updated_on: testDate
-    }
-
-    chai
-      .request(server)
-      .keepOpen()
-      .post('/api/issues/{project}')
-      .send(testIssue)
-      .end();
-
-    chai
-      .request(server)
-      .keepOpen()
-      .get('/api/issues/{project}?created_by=tester creator3&created_by=tester creator4&created_by=tester creator')
-      .end(function (err, res) {
-        const resObj = res.body[0];
-        assert.equal(res.status, 200);
-        assert.isArray(res.body, true);
-        assert.equal(res.body.length, 3)
-        done();
-      })
-  });
 
   test('Update one field on an issue: PUT request to /api/issues/{project}', function (done) {
 
@@ -224,9 +160,9 @@ suite('Functional Tests', function () {
           .put(`/api/issues/apitest`)
           .send(testIssue)
           .end(function (err, res) {
-            assert.equal(res.status, 200);
-            assert.equal(res.body._id, d._id);
-            assert.equal(res.body.issue_title, "UPDATED - Test issue title");
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body._id, d._id.toString());
+            assert.strictEqual(res.body.result, 'successfully updated');
             done();
           });
 
@@ -252,12 +188,9 @@ suite('Functional Tests', function () {
           .put(`/api/issues/apitest`)
           .send(testIssue)
           .end(function (err, res) {
-
-            assert.equal(res.status, 200);
-            assert.equal(res.body._id, d._id);
-            assert.equal(res.body.issue_title, "UPDATED - Test issue title2");
-            assert.equal(res.body.assigned_to, "UPDATED - tester2");
-
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body._id, d._id.toString());
+            assert.strictEqual(res.body.result, 'successfully updated');
             done();
           });
 
@@ -278,8 +211,8 @@ suite('Functional Tests', function () {
       .put(`/api/issues/apitest`)
       .send(testIssue)
       .end(function (err, res) {
-        assert.equal(res.status, 500);
-        assert.equal(res.body.msg, 'Missing ID');
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.error, 'missing _id');
         assert.isUndefined(res.body.issue_title, true);
         done();
       });
@@ -303,10 +236,10 @@ suite('Functional Tests', function () {
           .send(testIssue)
           .end(function (err, res) {
 
-            assert.equal(res.status, 200);
-            assert.equal(res.body["error"], "could not update");
-            assert.equal(res.body["_id"], ID);
-            assert.equal(res.body.issue_title, undefined);
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body["error"], "no update field(s) sent");
+            assert.strictEqual(res.body["_id"], ID.toString());
+            
             done();
           });
       });
@@ -327,13 +260,127 @@ suite('Functional Tests', function () {
       .put(`/api/issues/apitest`)
       .send(testIssue)
       .end(function (err, res) {
-        assert.equal(res.status, 500);
-        assert.equal(res.body.msg, "Invalid ID");
+        assert.strictEqual(res.status, 500);
+        assert.strictEqual(res.body.error, "could not update");
+        assert.strictEqual(res.body._id, testIssue._id);
+        assert.isUndefined(res.body.issue_title, true);
+        done();
+      });
+
+  });
+
+
+  test('Delete an issue with an invalid _id: DELETE request to /api/issues/{project}', function (done) {
+
+    let testIssue = {
+      _id: "INVALID ID",
+      issue_title: "INVALID UPDATE",
+      assigned_to: "INVALID UPDATE"
+    }
+
+    chai
+      .request(server)
+      .keepOpen()
+      .delete(`/api/issues/apitest`)
+      .send(testIssue)
+      .end(function (err, res) {
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.error, "could not delete");
+        assert.strictEqual(res.body._id, testIssue._id);
+        
+        done();
+      });
+
+  });
+
+
+  test('Delete an issue with missing _id: DELETE request to /api/issues/{project}', function (done) {
+
+    let testIssue = {
+      issue_title: "INVALID UPDATE",
+      assigned_to: "INVALID UPDATE"
+    }
+
+    chai
+      .request(server)
+      .keepOpen()
+      .delete(`/api/issues/apitest`)
+      .send(testIssue)
+      .end(function (err, res) {
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.error, "missing _id");
         assert.isUndefined(res.body.assigned_to, true);
         assert.isUndefined(res.body.issue_title, true);
         done();
       });
 
+  });
+
+  test('View issues on a project with one filter: GET request to /api/issues/{project}', function (done) {
+
+    let testIssue = {
+      assigned_to: "tester3",
+      status_text: "this is a test3",
+      open: "true",
+      issue_title: "Test issue title3",
+      issue_text: "Test issue text3",
+      created_by: "tester creator3",
+      created_on: testDate,
+      updated_on: testDate
+    }
+
+    chai
+      .request(server)
+      .keepOpen()
+      .post('/api/issues/TEST')
+      .send(testIssue)
+      .end();
+
+    chai
+      .request(server)
+      .keepOpen()
+      .get('/api/issues/TEST?created_by=tester creator3')
+      .end(function (err, res) {
+
+        assert.equal(res.status, 200);
+        assert.isArray(res.body, true);
+        assert.equal(res.body.length, 1)
+        done();
+      })
+  });
+
+
+  test('View issues on a project with multiple filters: GET request to /api/issues/{project}', function (done) {
+
+    let testIssue = {
+      assigned_to: "tester4",
+      status_text: "this is a test4",
+      open: "true",
+      issue_title: "Test issue title4",
+      issue_text: "Test issue text4",
+      created_by: "tester creator4",
+      created_on: testDate,
+      updated_on: testDate
+    }
+
+    chai
+      .request(server)
+      .keepOpen()
+      .post('/api/issues/TEST')
+      .send(testIssue)
+      .end();
+
+    chai
+      .request(server)
+      .keepOpen()
+      .get('/api/issues/TEST?created_by=tester creator3&created_by=tester creator4&created_by=tester creator')
+      .end(function (err, res) {
+
+        assert.equal(res.status, 200);
+        assert.isArray(res.body, true);
+        assert.equal(res.body.length, 3)
+        done();
+      })
   });
 
   test('Delete an issue: DELETE request to /api/issues/{project}', function (done) {
@@ -353,65 +400,22 @@ suite('Functional Tests', function () {
           .send(testIssue)
           .end(function (err, res) {
             assert.strictEqual(res.status, 200);
-            assert.isTrue(res.body.acknowledged, true);
-            assert.strictEqual(res.body.deletedCount, 1);
+            assert.strictEqual(res.body.result, "successfully deleted");
+            assert.strictEqual(res.body._id, ID.toString());
             done();
           });
       });
 
   });
 
-  test('Delete an issue with an invalid _id: DELETE request to /api/issues/{project}', function (done) {
 
-    let testIssue = {
-      _id: "INVALID ID",
-      issue_title: "INVALID UPDATE",
-      assigned_to: "INVALID UPDATE"
-    }
 
-    chai
-      .request(server)
-      .keepOpen()
-      .delete(`/api/issues/apitest`)
-      .send(testIssue)
-      .end(function (err, res) {
-        assert.equal(res.status, 500);
-        assert.equal(res.body.msg, "Not a valid format iD");
-        assert.isUndefined(res.body.assigned_to, true);
-        assert.isUndefined(res.body.issue_title, true);
-        done();
-      });
-
-  });
-
-  
-  test('Delete an issue with missing _id: DELETE request to /api/issues/{project}', function (done) {
-
-    let testIssue = {      
-      issue_title: "INVALID UPDATE",
-      assigned_to: "INVALID UPDATE"
-    }
-
-    chai
-      .request(server)
-      .keepOpen()
-      .delete(`/api/issues/apitest`)
-      .send(testIssue)
-      .end(function (err, res) {
-        assert.equal(res.status, 500);
-        assert.equal(res.body.msg, "Not a valid format iD");
-        assert.isUndefined(res.body.assigned_to, true);
-        assert.isUndefined(res.body.issue_title, true);
-        done();
-      });
-
-  });
-
-  /*   after((done) => {
+   after((done) => {
     db.collection('issues')
       .deleteMany({}, function (err) { });
+      process.env.DATE = 'PROD_DATE';       
     done();
-  }); */
+  }); 
 
 });
 

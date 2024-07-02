@@ -1,7 +1,7 @@
-const { MongoClient } = require("mongodb");
+const { MongoClient } = require("mongodb");  // mongodb connnection logic
 let env = require('dotenv').config();
 
-let key = env.parsed.DB
+let key = env.parsed.DB           //.env variable - mongodb connection key needs to be declared in .env file
 
 let dbConnection
 
